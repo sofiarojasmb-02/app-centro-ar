@@ -220,13 +220,23 @@ function initThree() {
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-  // Iluminación suave
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
+  // Iluminación suave y ambiental para tonos naturales
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
   scene.add(ambientLight);
 
-  const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
-  dirLight.position.set(0, 5, 2);
-  scene.add(dirLight);
+  // Luz hemisférica para reflejos degradados metálicos
+  const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.5);
+  scene.add(hemiLight);
+
+  // Luz direccional principal desde arriba-derecha
+  const dirLight1 = new THREE.DirectionalLight(0xffffff, 1.0);
+  dirLight1.position.set(2, 5, 3);
+  scene.add(dirLight1);
+
+  // Luz direccional frontal para asegurar brillos metálicos desde la cámara
+  const dirLight2 = new THREE.DirectionalLight(0xffffff, 0.8);
+  dirLight2.position.set(-2, 2, 5);
+  scene.add(dirLight2);
 
   // Crear anclaje para el QR y el grupo animado
   qrAnchor = new THREE.Group();
@@ -271,6 +281,7 @@ function loadARAssets() {
        sodipodi:nodetypes="ccccccccccccccccssssssccccccccccccccccccsssssssscccscsssssscccssssssssssssscccssssssccccscsssscccsscsssccssssssccccccccccccssscsssssscsccccccccssccccccccccssscccccssssscccssccssccscccssccssssssssscscccccccccccsssssssssscscccccssccccccccccccccssssssccccccccccccccccccccssssssccccsssssssccsssssssssssccssscssssscsccsssssssscsccsssssssscscccsccscccssssc" /></g></svg>
 `;
 
+      const loader = new SVGLoader();
       const svgData = loader.parse(mySvg);
       const svgGroup = new THREE.Group();
       
@@ -284,11 +295,11 @@ function loadARAssets() {
         bevelThickness: 0.4
       };
 
-      // Material standard con color #4f46e5 (según lo indicado por el usuario)
+      // Material standard con color azul oscuro marino metalizado brillante
       const material = new THREE.MeshStandardMaterial({
-        color: 0x4f46e5,
-        roughness: 0.25,
-        metalness: 0.4,
+        color: 0x0A2540, // Azul oscuro marino
+        roughness: 0.15, // Muy brillante
+        metalness: 0.9,  // Metálico
         side: THREE.DoubleSide
       });
 
@@ -360,12 +371,26 @@ function loadARAssets() {
     );
   });
 
-  Promise.all([loadLogo, loadPersonaje]).then(([logo, charData]) => {
+  // Carga independiente y tolerante a fallos de los assets
+  loadLogo.then((logo) => {
     logoMesh = logo;
-    // Posicionar logo a 15 cm por encima del centro del QR
-    logoMesh.position.set(0, 0.15, 0);
+    // Posicionar el logo de manera perpendicular directamente sobre el código QR
+    // En el espacio del QR: Z es la normal (altura perpendicular), X e Y son el plano del QR.
+    logoMesh.position.set(0, 0, 0.05);
+    logoMesh.rotation.x = Math.PI / 2; // Perpendicular al plano QR (de pie)
     modelGroup.add(logoMesh);
+    
+    modelsLoaded = true;
+    instructionText.textContent = "Apunta la cámara al código QR de Centro";
+    console.log("Logo AR cargado con éxito.");
+  }).catch((err) => {
+    console.error("Error al cargar el logo: ", err);
+    // Asegurar que modelsLoaded sea true incluso si hay error y se usa fallback
+    modelsLoaded = true;
+  });
 
+  loadPersonaje.then((charData) => {
+    if (!charData || !charData.model) return;
     personajeMesh = charData.model;
     
     // Auto-escalado del personaje a 12 cm de alto para que encaje correctamente
@@ -381,8 +406,14 @@ function loadARAssets() {
       personajeMesh.scale.set(0.001, 0.001, 0.001);
     }
 
-    // Posicionar personaje a 5 cm a la derecha del centro del QR (en el plano Y=0)
-    personajeMesh.position.set(0.05, 0, 0);
+    // Guardar escala base para animaciones de squash & stretch
+    personajeMesh.userData.baseScale = personajeMesh.scale.clone();
+
+    // Posicionar personaje a 6 cm a la derecha del centro del QR
+    // Debe estar de pie (rotación X = Math.PI / 2) y mirando al usuario (rotación Y = Math.PI)
+    personajeMesh.position.set(0.06, 0, 0);
+    personajeMesh.rotation.x = Math.PI / 2;
+    personajeMesh.rotation.y = Math.PI;
     
     // Configurar e iniciar animaciones si existen
     if (charData.animations && charData.animations.length > 0) {
@@ -395,10 +426,9 @@ function loadARAssets() {
     }
 
     modelGroup.add(personajeMesh);
-    
-    modelsLoaded = true;
-    instructionText.textContent = "Apunta la cámara al código QR de Centro";
-    console.log("Modelos AR cargados con éxito.");
+    console.log("Personaje AR cargado de forma independiente.");
+  }).catch((err) => {
+    console.error("Error al cargar el personaje (no bloquea el logo): ", err);
   });
 }
 
@@ -583,11 +613,15 @@ function animate() {
 
   // Si los modelos son visibles, aplicar rotaciones y animaciones
   if (modelGroup.visible) {
-    // Rotar logo a 1 RPM (360° en 60 segundos -> 0.1047 rad/s) y flotar arriba y abajo (animate="float")
+    // Girar el logo 360 grados lentamente sobre el eje vertical normal (Z-axis en el espacio local del QR,
+    // que corresponde a local Y después de rotar X por 90 grados en orden XYZ)
     if (logoMesh) {
-      logoMesh.rotation.y += 0.1047 * delta;
-      const time = now * 0.002;
-      logoMesh.position.y = 0.15 + Math.sin(time) * 0.015;
+      logoMesh.rotation.x = Math.PI / 2; // Asegurar orientación perpendicular
+      logoMesh.rotation.y += 0.35 * delta; // Rotación lenta (360 grados en aprox 18 segundos)
+      
+      // Oscilación vertical suave sobre el QR (eje Z de la pose es perpendicular)
+      const time = now * 0.0025;
+      logoMesh.position.set(0, 0, 0.04 + Math.sin(time) * 0.012);
     }
 
 
@@ -598,10 +632,11 @@ function animate() {
 
     // Animación del placeholder en caso de que falle la carga (Squash and Stretch)
     if (personajeMesh && personajeMesh.userData.animatePlaceholder) {
+      const baseScale = personajeMesh.userData.baseScale || new THREE.Vector3(1, 1, 1);
       const time = now * 0.005;
       const squash = 1 + Math.sin(time) * 0.15;
       const stretch = 1 - Math.sin(time) * 0.08;
-      personajeMesh.scale.set(0.001 * stretch, 0.001 * squash, 0.001 * stretch);
+      personajeMesh.scale.set(baseScale.x * stretch, baseScale.y * squash, baseScale.z * stretch);
     }
   }
 
