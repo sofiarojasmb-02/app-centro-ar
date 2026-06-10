@@ -1,0 +1,399 @@
+/* --- VARIABLES Y SISTEMA DE DISEÑO --- */
+:root {
+  --font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --bg-dark: rgba(10, 12, 22, 0.82);
+  --bg-glass: rgba(18, 22, 36, 0.45);
+  --border-glass: rgba(255, 255, 255, 0.08);
+  --primary-glow: linear-gradient(135deg, #00FFA3 0%, #00B8FF 100%);
+  --primary-color: #00FFA3;
+  --secondary-color: #00B8FF;
+  --text-main: #FFFFFF;
+  --text-muted: rgba(255, 255, 255, 0.7);
+  --error-color: #FF4A6B;
+  --warning-color: #FFC043;
+}
+
+/* --- RESET Y CONFIGURACIÓN BASE --- */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: #060810;
+  font-family: var(--font-family);
+  color: var(--text-main);
+  user-select: none;
+}
+
+/* --- VIDEO DE LA CÁMARA (FONDO) --- */
+#camera-stream {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+}
+
+/* --- CANVAS THREE.JS (SUPERPUESTO) --- */
+#three-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  pointer-events: none; /* Dejar pasar toques a los overlays de abajo si los hay */
+}
+
+/* --- ESTILOS DE OVERLAYS (BIENVENIDA / ERROR) --- */
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+  background-color: #060810;
+  z-index: 10;
+  transition: opacity 0.5s cubic-bezier(0.25, 1, 0.5, 1), visibility 0.5s;
+}
+
+.overlay.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.card {
+  width: 100%;
+  max-width: 420px;
+  padding: 40px 32px;
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-glass);
+  border-radius: 28px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: fadeInScale 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.brand-logo {
+  margin-bottom: 24px;
+  filter: drop-shadow(0 0 15px rgba(0, 255, 163, 0.3));
+}
+
+h1 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  letter-spacing: 4px;
+  margin-bottom: 6px;
+  background: var(--primary-glow);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 2px;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+}
+
+.subtitle {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--text-muted);
+  margin-bottom: 30px;
+}
+
+/* --- BOTÓN PRINCIPAL --- */
+.btn-primary {
+  width: 100%;
+  padding: 16px 28px;
+  font-family: var(--font-family);
+  font-size: 1rem;
+  font-weight: 600;
+  color: #060810;
+  background: var(--primary-glow);
+  border: none;
+  border-radius: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  box-shadow: 0 8px 25px rgba(0, 255, 163, 0.25);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btn-primary:active {
+  transform: scale(0.97);
+  box-shadow: 0 4px 12px rgba(0, 255, 163, 0.15);
+}
+
+.footer-text {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: 28px;
+}
+
+/* --- ADVERTENCIA HTTPS --- */
+.warning-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  background: rgba(255, 192, 67, 0.1);
+  border: 1px solid rgba(255, 192, 67, 0.2);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 24px;
+  text-align: left;
+}
+
+.warning-icon {
+  font-size: 1.5rem;
+}
+
+.warning-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.warning-text strong {
+  color: var(--warning-color);
+  font-size: 0.85rem;
+}
+
+.warning-text span {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* --- PANTALLA ERROR --- */
+.error-card {
+  border-color: rgba(255, 74, 107, 0.2);
+}
+
+.error-icon {
+  font-size: 3rem;
+  margin-bottom: 16px;
+  animation: pulseError 2s infinite;
+}
+
+.error-card h1 {
+  background: linear-gradient(135deg, #FF4A6B 0%, #FF2A85 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* --- INTERFAZ ACTIVA AR (SUPERPUESTA) --- */
+.ar-ui {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 5;
+  pointer-events: none; /* Deja toques al canvas */
+}
+
+/* Burbuja de Instrucciones */
+.instruction-bubble {
+  position: absolute;
+  top: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 24px;
+  background: rgba(6, 8, 16, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-glass);
+  border-radius: 30px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  pointer-events: auto;
+  transition: background 0.3s;
+}
+
+.instruction-bubble.detected {
+  background: rgba(0, 255, 163, 0.15);
+  border-color: rgba(0, 255, 163, 0.3);
+}
+
+.pulse-ring {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  box-shadow: 0 0 0 0 rgba(0, 255, 163, 0.7);
+  animation: pulseRing 1.6s infinite;
+}
+
+.instruction-bubble.detected .pulse-ring {
+  animation: none;
+  background: var(--primary-color);
+  box-shadow: 0 0 10px var(--primary-color);
+}
+
+#instruction-text {
+  font-size: 0.88rem;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+/* Indicador de QR Detectado */
+.detection-status {
+  position: absolute;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: rgba(0, 255, 163, 0.2);
+  border: 1px solid rgba(0, 255, 163, 0.4);
+  border-radius: 20px;
+  opacity: 0;
+  transform: translate(-50%, 20px) scale(0.9);
+  transition: opacity 0.3s, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.detection-status.show {
+  opacity: 1;
+  transform: translate(-50%, 0) scale(1);
+}
+
+.detection-status .dot {
+  width: 8px;
+  height: 8px;
+  background-color: var(--primary-color);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--primary-color);
+  animation: blink 1s infinite alternate;
+}
+
+.status-text {
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: var(--primary-color);
+  text-transform: uppercase;
+}
+
+/* Panel de Debug */
+.debug-panel {
+  position: absolute;
+  top: 96px;
+  left: 16px;
+  padding: 16px;
+  background: rgba(6, 8, 16, 0.85);
+  border: 1px solid var(--border-glass);
+  border-radius: 16px;
+  max-width: 280px;
+  font-family: monospace;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: #39FF14;
+  pointer-events: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.debug-panel h3 {
+  font-size: 0.8rem;
+  margin-bottom: 8px;
+  color: #FFFFFF;
+  border-bottom: 1px solid var(--border-glass);
+  padding-bottom: 4px;
+}
+
+/* Botón flotante */
+.btn-floating {
+  position: absolute;
+  bottom: 24px;
+  right: 24px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(18, 22, 36, 0.6);
+  border: 1px solid var(--border-glass);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #FFFFFF;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  pointer-events: auto;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s, background 0.2s;
+}
+
+.btn-floating:active {
+  transform: scale(0.9);
+  background: rgba(18, 22, 36, 0.9);
+}
+
+/* --- ANIMACIONES --- */
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulseError {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.08); opacity: 0.8; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes pulseRing {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(0, 255, 163, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 10px rgba(0, 255, 163, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(0, 255, 163, 0);
+  }
+}
+
+@keyframes blink {
+  from { opacity: 0.4; }
+  to { opacity: 1; }
+}

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+  <title>Realidad Aumentada - Centro de Prototipado</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Contenedor de la cámara (Fondo) -->
+  <video id="camera-stream" autoplay playsinline muted></video>
+
+  <!-- Canvas de Renderizado 3D de Three.js (Superpuesto) -->
+  <canvas id="three-canvas"></canvas>
+
+  <!-- Pantalla de Inicio / Bienvenida (Glassmorphism Overlay) -->
+  <div id="start-overlay" class="overlay">
+    <div class="card">
+      <div class="brand-logo">
+        <!-- SVG Logo de Centro de Prototipado o fallback elegante -->
+        <svg width="80" height="80" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="50" cy="50" r="45" stroke="url(#logo-grad)" stroke-width="6"/>
+          <path d="M50 20V80" stroke="url(#logo-grad)" stroke-width="6" stroke-linecap="round"/>
+          <path d="M20 50H80" stroke="url(#logo-grad)" stroke-width="6" stroke-linecap="round"/>
+          <rect x="40" y="40" width="20" height="20" rx="4" fill="url(#logo-grad)"/>
+          <defs>
+            <linearGradient id="logo-grad" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#00FFA3"/>
+              <stop offset="1" stop-color="#00B8FF"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      
+      <h1>CENTRO</h1>
+      <h2>REALIDAD AUMENTADA</h2>
+      <p class="subtitle">Explora el logo 3D de Centro y al personaje animado proyectados sobre el código QR en tiempo real.</p>
+      
+      <!-- Alerta de HTTPS si se detecta HTTP inseguro -->
+      <div id="http-warning" class="warning-box hidden">
+        <div class="warning-icon">⚠️</div>
+        <div class="warning-text">
+          <strong>Requiere conexión segura (HTTPS)</strong>
+          <span>Para usar la cámara en tu celular, debes abrir este sitio desde un servidor seguro HTTPS.</span>
+        </div>
+      </div>
+
+      <button id="btn-start" class="btn-primary">
+        <span>Iniciar Experiencia AR</span>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+      </button>
+      
+      <p class="footer-text">Compatible con Android (Chrome) e iOS (Safari 16+)</p>
+    </div>
+  </div>
+
+  <!-- Pantalla de Error (Permiso de Cámara Denegado) -->
+  <div id="error-overlay" class="overlay hidden">
+    <div class="card error-card">
+      <div class="error-icon">❌</div>
+      <h1>Acceso Denegado</h1>
+      <p id="error-message">No se pudo acceder a la cámara. Por favor, concede permisos e intenta nuevamente.</p>
+      <button onclick="window.location.reload();" class="btn-primary">Reintentar</button>
+    </div>
+  </div>
+
+  <!-- Controles y overlays de la Experiencia en Ejecución -->
+  <div id="ar-ui-overlay" class="ar-ui hidden">
+    <!-- Overlay de Instrucciones -->
+    <div id="instructions" class="instruction-bubble">
+      <div class="pulse-ring"></div>
+      <span id="instruction-text">Apunta la cámara al código QR de Centro</span>
+    </div>
+
+    <!-- Indicador de QR Detectado -->
+    <div id="qr-indicator" class="detection-status">
+      <span class="dot"></span>
+      <span class="status-text">QR Detectado</span>
+    </div>
+
+    <!-- Panel de información y debug (activable con ?debug=true) -->
+    <div id="debug-panel" class="debug-panel hidden">
+      <h3>Datos de Depuración</h3>
+      <p>FPS jsQR: <span id="debug-fps">0</span></p>
+      <p>QR Detectado: <span id="debug-detected">No</span></p>
+      <p>Posición: <span id="debug-pos">X: 0, Y: 0, Z: 0</span></p>
+      <p>Esquinas: <span id="debug-corners">N/A</span></p>
+      <p>Resolución Video: <span id="debug-resolution">0 x 0</span></p>
+    </div>
+
+    <!-- Botón flotante para activar/desactivar modo debug visual en pantalla -->
+    <button id="btn-toggle-debug" class="btn-floating" title="Depuración">
+      <span>⚙️</span>
+    </button>
+  </div>
+
+  <!-- Script principal del bundle -->
+  <script type="module" src="/main.js"></script>
+</body>
+</html>
