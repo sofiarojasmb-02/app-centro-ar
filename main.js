@@ -159,7 +159,7 @@ function estimatePoseFromCorners(corners, videoWidth, videoHeight) {
   // Asegurar ortogonalidad de la matriz de rotación
   r1.normalize();
   const dot = r1.dot(r2);
-  r2.subScaledVector(r1, dot).normalize();
+  r2.addScaledVector(r1, -dot).normalize();
   
   // Calcular r3 mediante producto cruz r1 x r2
   const r3 = new THREE.Vector3().crossVectors(r1, r2).normalize();
