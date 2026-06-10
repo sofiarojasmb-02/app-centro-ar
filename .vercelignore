@@ -1,0 +1,6 @@
+*.glb
+**/*.glb
+Logo Centro 3D.glb
+public/models/logo.glb
+**/logo.glb
+```

@@ -28,4 +28,5 @@ yarn-error.log*
 .vercel
 *.glb
 Logo Centro 3D.glb
+3dsvg.stl
 
