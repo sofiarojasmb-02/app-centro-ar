@@ -272,7 +272,9 @@ function loadARAssets() {
    viewBox="0 0 100 30.000002"
    version="1.1"
    id="svg1"
-   xml:space="preserve">
+   xml:space="preserve"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
   <g id="layer1">
     <path
        style="fill:#4f46e5;stroke:none;stroke-width:0.474709"
@@ -410,10 +412,10 @@ function loadARAssets() {
     personajeMesh.userData.baseScale = personajeMesh.scale.clone();
 
     // Posicionar personaje a 6 cm a la derecha del centro del QR
-    // Debe estar de pie (rotación X = Math.PI / 2) y mirando al usuario (rotación Y = Math.PI)
+    // Debe estar de pie (rotación X = Math.PI / 2) y rotado para mirar de frente al usuario (rotación Y = 0)
     personajeMesh.position.set(0.06, 0, 0);
     personajeMesh.rotation.x = Math.PI / 2;
-    personajeMesh.rotation.y = Math.PI;
+    personajeMesh.rotation.y = 0;
     
     // Configurar e iniciar animaciones si existen
     if (charData.animations && charData.animations.length > 0) {
