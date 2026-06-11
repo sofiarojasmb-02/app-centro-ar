@@ -31,6 +31,10 @@ let qrAnchor; // Grupo contenedor que se alineará con el QR
 let modelGroup; // Grupo interno para animaciones de aparición/desaparición
 let mixer; // AnimationMixer para reproducir la animación del personaje
 let logoMesh, personajeMesh; // Referencias a los modelos o placeholders
+let holoLight; // Luz puntual del holograma
+let hologramDots = []; // Puntos de luz titilantes alrededor
+let holoBeam; // Haz de luz del proyector (cono)
+
 
 // --- ESTADOS DE LA APP ---
 let modelsLoaded = false;
@@ -262,77 +266,40 @@ function loadARAssets() {
   const gltfLoader = new GLTFLoader();
   const fbxLoader = new FBXLoader();
 
-  // Cargar el Logo 3D desde archivo STL
+  // Cargar el Logo desde imagen SVG como textura para holograma
   const loadLogo = new Promise((resolve) => {
-    const stlLoader = new STLLoader();
-    stlLoader.load(
-      '/models/logo.stl',
-      (geometry) => {
-        // Material standard con color azul oscuro marino metalizado brillante
-        const material = new THREE.MeshStandardMaterial({
-          color: 0x0A2540, // Azul oscuro marino
-          roughness: 0.15, // Muy brillante
-          metalness: 0.9,  // Metálico
-          side: THREE.DoubleSide
+    const textureLoader = new THREE.TextureLoader();
+    textureLoader.load(
+      '/logocentro.svg',
+      (texture) => {
+        // Mejorar filtrado de textura para SVG
+        texture.minFilter = THREE.LinearFilter;
+        texture.magFilter = THREE.LinearFilter;
+
+        // Material del holograma
+        const material = new THREE.MeshBasicMaterial({
+          map: texture,
+          transparent: true,
+          opacity: 0.8,
+          blending: THREE.AdditiveBlending,
+          side: THREE.DoubleSide,
+          depthWrite: false, // Evita problemas de transparencia
+          color: 0x00FFA3 // Neon cyan/green glow
         });
-        
+
+        // Aspect ratio del SVG (100x30 -> 10:3)
+        // Ancho de 12 cm, alto de 3.6 cm
+        const geometry = new THREE.PlaneGeometry(0.12, 0.036);
         const mesh = new THREE.Mesh(geometry, material);
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
-
-        // Centrar la geometría en sí misma
-        geometry.center();
-
-        // Escalar y orientar automáticamente la geometría del STL
-        geometry.computeBoundingBox();
-        const box = geometry.boundingBox;
-        const size = new THREE.Vector3();
-        box.getSize(size);
-        
-        // Determinar los ejes
-        const dims = [
-          { axis: 'x', val: size.x },
-          { axis: 'y', val: size.y },
-          { axis: 'z', val: size.z }
-        ];
-        // Ordenar por tamaño descendente (mayor a menor)
-        dims.sort((a, b) => b.val - a.val);
-        
-        // Rotar la geometría de forma que:
-        // - El eje más largo (ancho) quede alineado con el eje X de Three.js
-        if (dims[0].axis === 'y') {
-          geometry.rotateZ(Math.PI / 2); // Rotar Y a X
-        } else if (dims[0].axis === 'z') {
-          geometry.rotateY(Math.PI / 2); // Rotar Z a X
-        }
-        
-        // Recalcular bounding box tras primera rotación
-        geometry.computeBoundingBox();
-        geometry.boundingBox.getSize(size);
-        
-        // - El segundo eje más largo (alto) quede alineado con el eje Y de Three.js (antes de rotar a perpendicular)
-        if (size.z > size.y) {
-          geometry.rotateX(Math.PI / 2); // Rotar Z a Y
-        }
-        
-        // Centrar de nuevo la geometría tras las rotaciones de alineación
-        geometry.center();
-        geometry.computeBoundingBox();
-        geometry.boundingBox.getSize(size);
-        
-        // Escalar el logo para que tenga aprox 10 cm (0.10 metros) de ancho
-        const targetWidth = 0.10; // 10 cm
-        const scaleFactor = targetWidth / size.x;
-        mesh.scale.set(scaleFactor, scaleFactor, scaleFactor);
 
         resolve(mesh);
       },
       undefined,
       (err) => {
-        console.error("Error al cargar el STL: ", err);
-        // Fallback a cubo
+        console.error("Error al cargar la textura del logo: ", err);
+        // Fallback a cubo básico
         const geom = new THREE.BoxGeometry(0.04, 0.04, 0.04);
-        const mat = new THREE.MeshStandardMaterial({ color: 0x0A2540 });
+        const mat = new THREE.MeshStandardMaterial({ color: 0x00FFA3 });
         resolve(new THREE.Mesh(geom, mat));
       }
     );
@@ -371,15 +338,19 @@ function loadARAssets() {
   // Carga independiente y tolerante a fallos de los assets
   loadLogo.then((logo) => {
     logoMesh = logo;
-    // Posicionar el logo de manera perpendicular directamente sobre el código QR
-    // En el espacio del QR: Z es la normal (altura perpendicular), X e Y son el plano del QR.
-    logoMesh.position.set(0, 0, 0.05);
-    logoMesh.rotation.x = Math.PI / 2; // Perpendicular al plano QR (de pie)
+    // Posicionar al lado de la cabeza del personaje (personaje está en X=0.06, Z es la altura)
+    // Colocamos el logo en X=0.00 (el centro), Y=0, Z=0.11 (altura de la cabeza)
+    logoMesh.position.set(0.00, 0, 0.11);
+    logoMesh.rotation.x = Math.PI / 2; // De pie en vertical
+    logoMesh.rotation.y = 0;
     modelGroup.add(logoMesh);
+
+    // Crear luces titilantes alrededor del logo
+    createHologramLights();
     
     modelsLoaded = true;
     instructionText.textContent = "Apunta la cámara al código QR de Centro";
-    console.log("Logo AR cargado con éxito.");
+    console.log("Logo AR Holograma cargado con éxito.");
   }).catch((err) => {
     console.error("Error al cargar el logo: ", err);
     // Asegurar que modelsLoaded sea true incluso si hay error y se usa fallback
@@ -427,6 +398,56 @@ function loadARAssets() {
   }).catch((err) => {
     console.error("Error al cargar el personaje (no bloquea el logo): ", err);
   });
+}
+
+// --- LUCES Y HAZ DEL HOLOGRAMA ---
+function createHologramLights() {
+  // Luz puntual del holograma (color cyan)
+  holoLight = new THREE.PointLight(0x00FFA3, 1.0, 0.25);
+  holoLight.position.set(0.00, 0.01, 0.11); // Ligeramente adelantado
+  modelGroup.add(holoLight);
+
+  // Crear 4 esferas pequeñas (puntos de luz) en las esquinas del logo
+  const dotGeo = new THREE.SphereGeometry(0.0025, 8, 8); // 2.5 mm de radio
+  const dotMat = new THREE.MeshBasicMaterial({
+    color: 0x00FFA3,
+    transparent: true,
+    opacity: 0.9,
+    blending: THREE.AdditiveBlending
+  });
+
+  // Posiciones relativas en el plano X-Z (ancho=0.12, alto=0.036) alrededor del centro (0, 0, 0.11)
+  const positions = [
+    [-0.065, 0, 0.128], // Arriba Izquierda
+    [0.065, 0, 0.128],  // Arriba Derecha
+    [-0.065, 0, 0.092], // Abajo Izquierda
+    [0.065, 0, 0.092]   // Abajo Derecha
+  ];
+
+  positions.forEach((pos) => {
+    const dot = new THREE.Mesh(dotGeo, dotMat.clone());
+    dot.position.set(pos[0], pos[1], pos[2]);
+    modelGroup.add(dot);
+    hologramDots.push(dot);
+  });
+
+  // Haz de luz del proyector (cono desde el centro de la base hasta el holograma)
+  const beamGeo = new THREE.CylinderGeometry(0.06, 0.005, 0.11, 16, 1, true);
+  // Rotar geometría para que el cilindro apunte hacia arriba (Z)
+  beamGeo.rotateX(Math.PI / 2);
+  beamGeo.translate(0, 0, 0.055); // Centrar en el medio de la altura (0 a 0.11)
+
+  const beamMat = new THREE.MeshBasicMaterial({
+    color: 0x00FFA3,
+    transparent: true,
+    opacity: 0.15,
+    blending: THREE.AdditiveBlending,
+    side: THREE.DoubleSide,
+    wireframe: true // Estructura de alambre para estilo tecnológico
+  });
+
+  holoBeam = new THREE.Mesh(beamGeo, beamMat);
+  modelGroup.add(holoBeam);
 }
 
 // --- PASO 1: INICIALIZACIÓN DE LA CÁMARA TRASERA ---
@@ -610,17 +631,40 @@ function animate() {
 
   // Si los modelos son visibles, aplicar rotaciones y animaciones
   if (modelGroup.visible) {
-    // Girar el logo 360 grados lentamente sobre el eje vertical normal (Z-axis en el espacio local del QR,
-    // que corresponde a local Y después de rotar X por 90 grados en orden XYZ)
     if (logoMesh) {
-      logoMesh.rotation.x = Math.PI / 2; // Asegurar orientación perpendicular
-      logoMesh.rotation.y += 0.35 * delta; // Rotación lenta (360 grados en aprox 18 segundos)
-      
-      // Oscilación vertical suave sobre el QR (eje Z de la pose es perpendicular)
+      // Oscilación vertical suave sobre el QR al lado de la cabeza del personaje (Z=0.11 de base)
       const time = now * 0.0025;
-      logoMesh.position.set(0, 0, 0.04 + Math.sin(time) * 0.012);
+      logoMesh.position.set(0, 0, 0.11 + Math.sin(time) * 0.005);
+      
+      // Balanceo suave del holograma (efecto flotación)
+      logoMesh.rotation.y = Math.sin(now * 0.001) * 0.08;
+      
+      // Titileo de opacidad del holograma
+      if (logoMesh.material) {
+        logoMesh.material.opacity = 0.65 + Math.sin(now * 0.04) * 0.1 + (Math.random() - 0.5) * 0.03;
+      }
     }
 
+    // Titileo de la luz del holograma
+    if (holoLight) {
+      const flicker = 0.8 + Math.sin(now * 0.02) * 0.2 + (Math.random() - 0.5) * 0.15;
+      holoLight.intensity = Math.max(0.2, flicker);
+    }
+
+    // Haz de luz rotando y titilando
+    if (holoBeam) {
+      holoBeam.rotation.z += 0.3 * delta;
+      holoBeam.material.opacity = 0.08 + Math.sin(now * 0.03) * 0.04 + (Math.random() - 0.5) * 0.01;
+    }
+
+    // Puntos de luz titilantes
+    hologramDots.forEach((dot, index) => {
+      const blink = 0.6 + Math.sin(now * 0.015 + index * 1.5) * 0.35 + (Math.random() - 0.5) * 0.1;
+      dot.material.opacity = Math.max(0.1, Math.min(1.0, blink));
+      
+      const scale = 0.8 + Math.sin(now * 0.015 + index * 1.5) * 0.25;
+      dot.scale.set(scale, scale, scale);
+    });
 
     // Actualizar animación del personaje
     if (mixer) {
