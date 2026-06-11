@@ -31,26 +31,26 @@ html, body {
   user-select: none;
 }
 
-/* --- VIDEO DE LA CÁMARA (FONDO) --- */
-#camera-stream {
+/* --- CONTENEDOR MINDAR (MindAR monta video + canvas aquí) --- */
+#ar-container {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
   z-index: 1;
+  overflow: hidden;
 }
 
-/* --- CANVAS THREE.JS (SUPERPUESTO) --- */
-#three-canvas {
+/* MindAR inyecta el <video> y el <canvas> dentro de #ar-container */
+#ar-container video,
+#ar-container canvas {
   position: absolute;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 2;
-  pointer-events: none; /* Dejar pasar toques a los overlays de abajo si los hay */
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover;
 }
 
 /* --- ESTILOS DE OVERLAYS (BIENVENIDA / ERROR) --- */

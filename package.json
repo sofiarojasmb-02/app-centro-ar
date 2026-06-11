@@ -6,16 +6,16 @@
   "scripts": {
     "dev": "vite --host",
     "build": "vite build",
-    "preview": "vite preview",
-    "generate-qr": "node generate-qr.js"
+    "preview": "vite preview"
   },
   "dependencies": {
-    "fflate": "^0.8.2",
-    "jsqr": "^1.4.0",
-    "qrcode": "^1.5.3",
+    "mind-ar": "^1.2.5",
     "three": "^0.158.0"
   },
   "devDependencies": {
     "vite": "^4.5.0"
+  },
+  "overrides": {
+    "canvas": "npm:nanoid@^5.0.0"
   }
 }
