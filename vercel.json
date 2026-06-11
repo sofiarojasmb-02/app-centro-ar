@@ -1,17 +1,21 @@
 {
   "version": 2,
   "cleanUrls": true,
-  "routes": [
+  "headers": [
     {
-      "src": "/models/(.*)",
-      "headers": {
-        "cache-control": "public, max-age=31536000, immutable"
-      },
-      "dest": "/models/$1"
-    },
+      "source": "/models/(.*)",
+      "headers": [
+        {
+          "key": "cache-control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
     {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/((?!assets/|models/|images/|icons/|favicon\\.svg|.*\\..*).*)$",
+      "destination": "/index.html"
     }
   ]
 }
