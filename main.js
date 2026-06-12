@@ -30,6 +30,8 @@ let holoBeam    = null;
 let modelsLoaded = false;
 let isTracking   = false;
 let currentScale = 0;
+let robotRightArm = null;
+let robotLeftArm  = null;
 
 // ─────────────────────────────────────────────────────────────
 //  CARGA DE ASSETS AR
@@ -73,16 +75,17 @@ function loadARAssets() {
     );
   });
 
-  // ── Personaje FBX (Snatch) ──────────────────────────────────
+  // ── Personaje GLB (Robot PROTO) ─────────────────────────────
   const loadPersonaje = new Promise((resolve) => {
     gltfLoader.load(
-      '/models/personaje.glb',
+      '/models/PROTO.glb',
       (gltf) => resolve({ model: gltf.scene, animations: gltf.animations }),
       undefined,
-      () => {
-        fbxLoader.load(
-          '/models/Snatch.fbx',
-          (fbx) => resolve({ model: fbx, animations: fbx.animations }),
+      (err) => {
+        console.warn('No se encontró PROTO.glb. Intentando personaje.glb...', err);
+        gltfLoader.load(
+          '/models/personaje.glb',
+          (gltf) => resolve({ model: gltf.scene, animations: gltf.animations }),
           undefined,
           () => {
             console.warn('No se encontró personaje. Usando placeholder.');
@@ -94,6 +97,7 @@ function loadARAssets() {
       }
     );
   });
+
 
   // ── Aplicar resultados ──────────────────────────────────────
   loadLogo.then((logo) => {
@@ -112,7 +116,7 @@ function loadARAssets() {
   loadPersonaje.then(({ model, animations, isPlaceholder }) => {
     if (!model) return;
 
-    // Auto-escalado a ≈ 0.6 m de alto en espacio MindAR
+    // Auto-escalado a ≈ 0.7 m de alto en espacio MindAR
     const box  = new THREE.Box3().setFromObject(model);
     const size = new THREE.Vector3();
     box.getSize(size);
@@ -121,10 +125,23 @@ function loadARAssets() {
     model.scale.set(scale, scale, scale);
     model.userData.baseScale = model.scale.clone();
 
+    // Rotar para pararse perpendicular sobre el plano de la tarjeta AR (mirando al frente)
+    model.rotation.x = Math.PI / 2;
+
     // Centrar en la base del target, ligeramente a la derecha
     const center = new THREE.Vector3();
     box.getCenter(center);
     model.position.set(0, -center.y * scale, 0); // pies en Y=0
+
+    // Buscar y referenciar los hombros del robot para animarlos
+    model.traverse((child) => {
+      if (child.name === 'Sphere.057') {
+        robotRightArm = child;
+      }
+      if (child.name === 'Sphere.106') {
+        robotLeftArm = child;
+      }
+    });
 
     if (animations && animations.length > 0) {
       mixer = new THREE.AnimationMixer(model);
@@ -241,7 +258,24 @@ function animate() {
     });
 
     // Animación del personaje
-    if (mixer) mixer.update(delta);
+    if (mixer) {
+      mixer.update(delta);
+    } else {
+      // Si el robot no tiene animación pregrabada (como PROTO.glb), lo animamos manualmente
+      if (robotRightArm) {
+        const t = now * 0.004;
+        // Levantar el brazo hacia adelante/arriba y moverlo de lado a lado saludando
+        robotRightArm.rotation.x = -1.2 + Math.sin(t * 1.5) * 0.1; // ángulo hacia el frente
+        robotRightArm.rotation.z = Math.sin(t * 2.5) * 0.3;         // oscilación de saludo
+        robotRightArm.rotation.y = Math.cos(t * 1.5) * 0.15;
+      }
+      if (robotLeftArm) {
+        const t = now * 0.001;
+        // Movimiento de respiración natural y sutil en el brazo izquierdo
+        robotLeftArm.rotation.z = Math.sin(t) * 0.05;
+        robotLeftArm.rotation.x = Math.cos(t) * 0.03;
+      }
+    }
   }
 
   // Renderizar con MindAR
