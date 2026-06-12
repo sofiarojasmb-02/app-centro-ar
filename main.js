@@ -253,10 +253,8 @@ function animate() {
 // ─────────────────────────────────────────────────────────────
 async function startAR() {
   try {
-    const container = document.getElementById('ar-container');
-
     mindarThree = new MindARThree({
-      container,
+      container: document.body,
       imageTargetSrc: '/targets.mind',
       filterMinCF:     0.0001,
       filterBeta:      0.001,

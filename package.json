@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "mind-ar": "^1.2.5",
-    "three": "^0.158.0"
+    "three": "^0.150.0"
   },
   "devDependencies": {
     "vite": "^4.5.0"
