@@ -75,16 +75,16 @@ function loadARAssets() {
     );
   });
 
-  // ── Personaje GLB (Robot PROTO) ─────────────────────────────
+  // ── Personaje FBX (ROBOPROTO) ──────────────────────────────
   const loadPersonaje = new Promise((resolve) => {
-    gltfLoader.load(
-      '/models/PROTO.glb',
-      (gltf) => resolve({ model: gltf.scene, animations: gltf.animations }),
+    fbxLoader.load(
+      '/models/ROBOPROTO.fbx',
+      (fbx) => resolve({ model: fbx, animations: fbx.animations }),
       undefined,
       (err) => {
-        console.warn('No se encontró PROTO.glb. Intentando personaje.glb...', err);
+        console.warn('No se encontró ROBOPROTO.fbx. Intentando PROTO.glb...', err);
         gltfLoader.load(
-          '/models/personaje.glb',
+          '/models/PROTO.glb',
           (gltf) => resolve({ model: gltf.scene, animations: gltf.animations }),
           undefined,
           () => {
@@ -134,7 +134,13 @@ function loadARAssets() {
     model.position.set(0, -center.y * scale, 0); // pies en Y=0
 
     // Buscar y referenciar los hombros del robot para animarlos
+    console.log('[AR] ROBOPROTO model:', model);
+    console.log('[AR] ROBOPROTO animations:', animations);
     model.traverse((child) => {
+      const name = child.name.toLowerCase();
+      if (name.includes('arm') || name.includes('shoulder') || name.includes('hand') || name.includes('brazo') || name.includes('hombro') || name.includes('mano') || name.includes('sphere')) {
+        console.log(' - Match node:', child.name);
+      }
       if (child.name === 'Sphere.057') {
         robotRightArm = child;
       }
