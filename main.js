@@ -125,8 +125,9 @@ function loadARAssets() {
     model.scale.set(scale, scale, scale);
     model.userData.baseScale = model.scale.clone();
 
-    // Parado paralelo a la tarjeta AR, dando la espalda al logo y mirando de frente a la cámara
+    // Parado paralelo a la tarjeta AR, dando la espalda al logo y mirando de frente a la cámara (con rotación de 45° en sentido horario)
     model.rotation.x = 0;
+    model.rotation.y = -Math.PI / 4;
 
     // Centrar en Y = 0.55 (delante del logo) y posicionar en Z = 0.15 para evitar colisiones
     const center = new THREE.Vector3();
