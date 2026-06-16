@@ -128,10 +128,10 @@ function loadARAssets() {
     // Rotar para pararse perpendicular sobre el plano de la tarjeta AR (mirando al frente)
     model.rotation.x = Math.PI / 2;
 
-    // Centrar en la base del target, ligeramente a la derecha
+    // Centrar justo delante del logo (Y = 0.55) y parado perpendicular al target (pies en Z = 0)
     const center = new THREE.Vector3();
     box.getCenter(center);
-    model.position.set(0, -center.y * scale, 0); // pies en Y=0
+    model.position.set(0, 0.55, center.y * scale);
 
     // Buscar y referenciar los hombros del robot para animarlos
     console.log('[AR] ROBOPROTO model:', model);
